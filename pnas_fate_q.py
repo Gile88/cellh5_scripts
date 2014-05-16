@@ -20,6 +20,7 @@ class IgorsClass(cellh5_analysis.CellH5Analysis):
                                                     '#11FFF11', 
                                                     '#FF0000',
                                                     '#0000FF',
+                                                    '#999999',
                                                     '#000000']), 'cmap3')
     
     cmap4 = matplotlib.colors.ListedColormap(map(lambda x: cellh5_analysis.hex_to_rgb(x), 
@@ -28,6 +29,7 @@ class IgorsClass(cellh5_analysis.CellH5Analysis):
                                                     '#FF0000',
                                                     '#0000FF',
                                                     '#FFFF00',
+                                                    '#999999',
                                                     '#000000']), 'cmap4')
     cmap5 = matplotlib.colors.ListedColormap(map(lambda x: cellh5_analysis.hex_to_rgb(x), 
                                                    ['#FFFFFF', 
@@ -36,6 +38,7 @@ class IgorsClass(cellh5_analysis.CellH5Analysis):
                                                     '#0000FF',
                                                     '#05AC04',
                                                     '#FFFF00',
+                                                    '#999999',
                                                     '#000000']), 'cmap5')
 
     def setup_hmm(self, hmm_n_classes, hmm_n_obs, hmm_constraint_file):
@@ -46,11 +49,12 @@ class IgorsClass(cellh5_analysis.CellH5Analysis):
         constraints = HMMConstraint(self.hmm_constraint_file)
         
         transmat = numpy.array([
-                                [1.0, 0.1, 0.0, 0.0, 0.0,],
-                                [0.0, 1.0, 0.1, 0.0, 0.0,],
-                                [0.0, 0.0, 1.0, 0.1, 0.0,],
-                                [0.0, 0.0, 0.0, 10 , 0.1,],
-                                [0.1, 0.0, 0.0, 0.0, 10 ,],
+                                [1.0, 0.1, 0.0, 0.0, 0.0, 0.1],
+                                [0.0, 1.0, 0.1, 0.0, 0.0, 0.1],
+                                [0.0, 0.0, 1.0, 0.1, 0.0, 0.1],
+                                [0.0, 0.0, 0.0, 10 , 0.1, 0.1],
+                                [0.1, 0.0, 0.0, 0.0, 10 , 0.1],
+                                [0.0, 0.0, 0.0, 0.0, 0.0, 10 ],
                                 ])
         transmat = normalize(transmat, axis=1, eps=0.00001 )
         
@@ -294,12 +298,15 @@ class IgorsClass(cellh5_analysis.CellH5Analysis):
 #                 pnas_class_tmp = pnas_class.copy()
 #                 h2b_class_tmp = h2b_class.copy()
                 
-                inter_idx = h2b_class == 1
+                inter_idx = numpy.logical_or(h2b_class == 1, h2b_class == 5)
+                apo_idx = h2b_class == 4
+                
                 pnas_class[pnas_class==3] = 1
-                pnas_class[pnas_class==2]+=2
+                pnas_class[pnas_class==2] += 2
                 
                 combined_class = h2b_class
                 combined_class[inter_idx] = pnas_class[inter_idx]
+                combined_class[apo_idx] = 5
                 
                 combined_classes.append(combined_class)
 #                 print "*"*10
@@ -315,21 +322,22 @@ if __name__ == "__main__":
     
     print 'Start'
     plate_name = '140508'
-    ch5_main_file = "/Volumes/groups/gerlich/members/Igor Gak/FINAL_SS_Plate1/analysis/hdf5/_all_positions.ch5"
-    pos_mapping_file = "/Volumes/Seagate Backup Plus Drive/FINAL_HDF5/FINAL.txt"
-    hmm_xml_constraint_file = "graph_igor_pnas_h2b_combi.xml"
+    ch5_main_file = "/Volumes/groups/gerlich/members/Igor Gak/FINAL_SS_Plate1/analysis_new_class/hdf5/_all_positions.ch5"
+    pos_mapping_file = "/Volumes/groups/gerlich/members/Igor Gak/FINAL_SS_Plate1/FINAL_SS.txt"
+    hmm_xml_constraint_file = "graph_igor_pnas_h2b_combi_q.xml"
     
     pm = IgorsClass('igor_test', 
                         {plate_name: pos_mapping_file}, 
                         {plate_name: ch5_main_file}, 
                         sites=(1,),
-                       rows=("D","C","F",), 
-                       cols=(4, 5,)
+                        rows=("B","C","D", "E", "F"), 
+                        cols=(2,3,4,5,6,7,8,9,10,11,)
                     )
+    
     pm.read_events(5,99999)
     pm.track_full_events()
     pm.combine_classifiers("Event labels combined")
-    pm.setup_hmm(5, 4, hmm_xml_constraint_file)
+    pm.setup_hmm(6, 5, hmm_xml_constraint_file)
     pm.predict_hmm("Event labels combined")
     
     pm.plot_track_order_map(["Event track labels", "Event labels combined", 'Event HMM track labels'], 
@@ -352,7 +360,7 @@ if __name__ == "__main__":
     
     mito2mito_timings = pm.select_tracks('Selected HMM track labels')
     
-#    pm.plot_track_order_map(['Selected HMM track labels'], [IgorsClass.cmap5])
+    pm.plot_track_order_map(['Selected HMM track labels'], [IgorsClass.cmap5])
     
     mito_unknown_timings = pm.select_tracks_G1('Selected HMM track labels')
     
@@ -372,92 +380,92 @@ if __name__ == "__main__":
 #    else:
 #        return srtd[mid]
     
-    fig = pylab.figure()
-    ax = pylab.gca()
+#    fig = pylab.figure()
+#    ax = pylab.gca()
 #    a = sorted(S_phase_timings.values(), key=len(vals) in S_phase_timings.items())
-    bp_S = ax.boxplot(S_phase_timings.values(), 0,'gD', patch_artist = True)
-    for box in bp_S['boxes']:
-        box.set(color="#000100", linewidth=2, facecolor="#FFFA03")
-    for whisker in bp_S['whiskers']:
-        whisker.set(color="#000100", linewidth=2)
-    for cap in bp_S['caps']:
-        cap.set(color="#000100", linewidth=2)
-    for median in bp_S['medians']:
-        median.set(color="#0002FB", linewidth=2)
-    for flier in bp_S['fliers']:
-        flier.set(marker='o',color="#0001FF", alpha=0.75)
-    ax.set_xticklabels(["(%s, %s)" % (len(vals), t1) for (t1), vals in S_phase_timings.items()], rotation=90)
-    ax.set_title("S duration")
-    ax.set_xlabel('Positions')
-    ax.set_ylabel('Duration (h)')
-    ax.set_ylim (ymax = 6, ymin = 0)
-    pylab.tight_layout()
-    fig.savefig(pm.output("S_duration.pdf"))
+#    bp_S = ax.boxplot(S_phase_timings.values(), 0,'gD', patch_artist = True)
+#    for box in bp_S['boxes']:
+#        box.set(color="#000100", linewidth=2, facecolor="#FFFA03")
+#    for whisker in bp_S['whiskers']:
+#        whisker.set(color="#000100", linewidth=2)
+#    for cap in bp_S['caps']:
+#        cap.set(color="#000100", linewidth=2)
+#    for median in bp_S['medians']:
+#        median.set(color="#0002FB", linewidth=2)
+#    for flier in bp_S['fliers']:
+#        flier.set(marker='o',color="#0001FF", alpha=0.75)
+#    ax.set_xticklabels(["(%s, %s)" % (len(vals), t1) for (t1), vals in S_phase_timings.items()], rotation=90)
+#    ax.set_title("S duration")
+#    ax.set_xlabel('Positions')
+#    ax.set_ylabel('Duration (h)')
+#    ax.set_ylim (ymax = 6, ymin = 0)
+#    pylab.tight_layout()
+#    fig.savefig(pm.output("S_duration.pdf"))
 
     
-    fig = pylab.figure()
-    ax = pylab.gca()
-    bp_G2 = ax.boxplot(G2_phase_timings.values(), 0,'gD', patch_artist = True)
-    for box in bp_G2['boxes']:
-        box.set(color="#000100", linewidth=2, facecolor="#71FA03")
-    for whisker in bp_G2['whiskers']:
-        whisker.set(color="#000100", linewidth=2)
-    for cap in bp_G2['caps']:
-        cap.set(color="#000100", linewidth=2)
-    for median in bp_G2['medians']:
-        median.set(color="#FF0104", linewidth=2)
-    for flier in bp_G2['fliers']:
-        flier.set(marker='o',color="#0001FF", alpha=0.75)
-    ax.set_xticklabels(["(%s, %s)" % (len(vals), t1) for (t1), vals in G2_phase_timings.items()], rotation=90)
-    ax.set_title("G2 duration")
-    ax.set_xlabel('Positions')
-    ax.set_ylabel('Duration (h)')
-    ax.set_ylim (ymax = 6, ymin = 0)
-    pylab.tight_layout()
-    fig.savefig(pm.output("G2_duration.pdf"))
+#    fig = pylab.figure()
+#    ax = pylab.gca()
+#    bp_G2 = ax.boxplot(G2_phase_timings.values(), 0,'gD', patch_artist = True)
+#    for box in bp_G2['boxes']:
+#        box.set(color="#000100", linewidth=2, facecolor="#71FA03")
+#    for whisker in bp_G2['whiskers']:
+#        whisker.set(color="#000100", linewidth=2)
+#    for cap in bp_G2['caps']:
+#        cap.set(color="#000100", linewidth=2)
+#    for median in bp_G2['medians']:
+#        median.set(color="#FF0104", linewidth=2)
+#    for flier in bp_G2['fliers']:
+#        flier.set(marker='o',color="#0001FF", alpha=0.75)
+#    ax.set_xticklabels(["(%s, %s)" % (len(vals), t1) for (t1), vals in G2_phase_timings.items()], rotation=90)
+#    ax.set_title("G2 duration")
+#    ax.set_xlabel('Positions')
+#    ax.set_ylabel('Duration (h)')
+#    ax.set_ylim (ymax = 6, ymin = 0)
+#    pylab.tight_layout()
+#    fig.savefig(pm.output("G2_duration.pdf"))
 
-    fig = pylab.figure()
-    ax = pylab.gca()
-    bp_G1 = ax.boxplot(mito_unknown_timings.values(), 0,'gD', patch_artist = True)
-    for box in bp_G1['boxes']:
-        box.set(color="#000100", linewidth=2, facecolor="#009704")
-    for whisker in bp_G1['whiskers']:
-        whisker.set(color="#000100", linewidth=2)
-    for cap in bp_G1['caps']:
-        cap.set(color="#000100", linewidth=2)
-    for median in bp_G1['medians']:
-        median.set(color="#FF0104", linewidth=2)
-    for flier in bp_G1['fliers']:
-        flier.set(marker='o',color="#0001FF", alpha=0.75) 
-    ax.set_xticklabels(["(%s, %s)" % (len(vals), t1) for (t1), vals in mito_unknown_timings.items()], rotation=90)
-    ax.set_title("G1 duration")
-    ax.set_xlabel('Positions')
-    ax.set_ylabel('Duration (h)')
-    ax.set_ylim (ymax = 40, ymin = 0)
-    pylab.tight_layout()
-    fig.savefig(pm.output("G1_duration.pdf"))
+#    fig = pylab.figure()
+#    ax = pylab.gca()
+#    bp_G1 = ax.boxplot(mito_unknown_timings.values(), 0,'gD', patch_artist = True)
+#    for box in bp_G1['boxes']:
+#        box.set(color="#000100", linewidth=2, facecolor="#009704")
+#    for whisker in bp_G1['whiskers']:
+#        whisker.set(color="#000100", linewidth=2)
+#    for cap in bp_G1['caps']:
+#        cap.set(color="#000100", linewidth=2)
+#    for median in bp_G1['medians']:
+#        median.set(color="#FF0104", linewidth=2)
+#    for flier in bp_G1['fliers']:
+#        flier.set(marker='o',color="#0001FF", alpha=0.75) 
+#    ax.set_xticklabels(["(%s, %s)" % (len(vals), t1) for (t1), vals in mito_unknown_timings.items()], rotation=90)
+#    ax.set_title("G1 duration")
+#    ax.set_xlabel('Positions')
+#    ax.set_ylabel('Duration (h)')
+#    ax.set_ylim (ymax = 40, ymin = 0)
+#    pylab.tight_layout()
+#    fig.savefig(pm.output("G1_duration.pdf"))
     
     
-    fig = pylab.figure()
-    ax = pylab.gca()
-    bp_M = ax.boxplot(mito_timings.values(), 0,'gD', patch_artist = True)
-    for box in bp_M['boxes']:
-        box.set(color="#000100", linewidth=2, facecolor="#FF00FF")
-    for whisker in bp_M['whiskers']:
-        whisker.set(color="#000100", linewidth=2)
-    for cap in bp_M['caps']:
-        cap.set(color="#000100", linewidth=2)
-    for median in bp_M['medians']:
-        median.set(color="#FFF111", linewidth=2)
-    for flier in bp_M['fliers']:
-        flier.set(marker='o',color="#0001FF", alpha=0.75)
-    ax.set_xticklabels(["(%s, %s)" % (len(vals), t1) for (t1), vals in mito_timings.items()], rotation=90)
-    ax.set_title("Mitotic duration")
-    ax.set_xlabel('Positions')
-    ax.set_ylabel('Duration (min)')
-    ax.set_ylim (ymax = 100, ymin = 0)
-    pylab.tight_layout()
-    fig.savefig(pm.output("mito_duration.pdf"))
+#    fig = pylab.figure()
+#    ax = pylab.gca()
+#    bp_M = ax.boxplot(mito_timings.values(), 0,'gD', patch_artist = True)
+#    for box in bp_M['boxes']:
+#        box.set(color="#000100", linewidth=2, facecolor="#FF00FF")
+#    for whisker in bp_M['whiskers']:
+#        whisker.set(color="#000100", linewidth=2)
+#    for cap in bp_M['caps']:
+#        cap.set(color="#000100", linewidth=2)
+#    for median in bp_M['medians']:
+#        median.set(color="#FFF111", linewidth=2)
+#    for flier in bp_M['fliers']:
+#        flier.set(marker='o',color="#0001FF", alpha=0.75)
+#    ax.set_xticklabels(["(%s, %s)" % (len(vals), t1) for (t1), vals in mito_timings.items()], rotation=90)
+#    ax.set_title("Mitotic duration")
+#    ax.set_xlabel('Positions')
+#    ax.set_ylabel('Duration (min)')
+#    ax.set_ylim (ymax = 100, ymin = 0)
+#    pylab.tight_layout()
+#    fig.savefig(pm.output("mito_duration.pdf"))
     
 #    with open(pm.output('mito_duration.txt'), 'w') as file_txt:
 #        wr = csv.writer(file_txt, delimiter='\t')
@@ -470,26 +478,26 @@ if __name__ == "__main__":
 
    
     
-    fig = pylab.figure()
-    ax = pylab.gca()
+#    fig = pylab.figure()
+#    ax = pylab.gca()
 #    sort_try = sorted(mito2mito_timings.values(), key=(vals for vals in mito2mito_timings.items()))
-    bp_Cycle = ax.boxplot(mito2mito_timings.values(), 0,'gD', patch_artist = True)
-    for box in bp_Cycle['boxes']:
-        box.set(color="#000100", linewidth=2, facecolor="#FFFBF8")
-    for whisker in bp_Cycle['whiskers']:
-        whisker.set(color="#000100", linewidth=2)
-    for cap in bp_Cycle['caps']:
-        cap.set(color="#000100", linewidth=2)
-    for median in bp_Cycle['medians']:
-        median.set(color="#000100", linewidth=2)
-    for flier in bp_Cycle['fliers']:
-        flier.set(marker='o',color="#0001FF", alpha=0.75)
-    ax.set_xticklabels(["%s_%02d (%d)\n(%s, %s)" % (w, p, len(vals), t1, t2) for (w, p, t1, t2), vals in mito2mito_timings.items()], rotation=90)
-    ax.set_title("Cell-cycle duration (Meta to Meta)")
-    ax.set_xlabel('Positions')
-    ax.set_ylabel('Duration (h)')
-    pylab.tight_layout()
-    fig.savefig(pm.output("mito_2_mito_duration.pdf"))
+#    bp_Cycle = ax.boxplot(mito2mito_timings.values(), 0,'gD', patch_artist = True)
+#    for box in bp_Cycle['boxes']:
+#        box.set(color="#000100", linewidth=2, facecolor="#FFFBF8")
+#    for whisker in bp_Cycle['whiskers']:
+#        whisker.set(color="#000100", linewidth=2)
+#    for cap in bp_Cycle['caps']:
+#        cap.set(color="#000100", linewidth=2)
+#    for median in bp_Cycle['medians']:
+#        median.set(color="#000100", linewidth=2)
+#    for flier in bp_Cycle['fliers']:
+#        flier.set(marker='o',color="#0001FF", alpha=0.75)
+#    ax.set_xticklabels(["%s_%02d (%d)\n(%s, %s)" % (w, p, len(vals), t1, t2) for (w, p, t1, t2), vals in mito2mito_timings.items()], rotation=90)
+#    ax.set_title("Cell-cycle duration (Meta to Meta)")
+#    ax.set_xlabel('Positions')
+#    ax.set_ylabel('Duration (h)')
+#    pylab.tight_layout()
+#    fig.savefig(pm.output("mito_2_mito_duration.pdf"))
     
 #    fig = pylab.figure()
 #    ax = pylab.gca()

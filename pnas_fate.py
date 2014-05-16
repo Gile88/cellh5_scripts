@@ -37,6 +37,14 @@ class IgorsClass(cellh5_analysis.CellH5Analysis):
                                                     '#05AC04',
                                                     '#FFFF00',
                                                     '#000000']), 'cmap5')
+    cmap_all_black = matplotlib.colors.ListedColormap(map(lambda x: cellh5_analysis.hex_to_rgb(x), 
+                                                   ['#000000', 
+                                                    '#000000', 
+                                                    '#000000',
+                                                    '#000000',
+                                                    '#000000',
+                                                    '#000000',
+                                                    '#000000']), 'cmap_all_black')
 
     def setup_hmm(self, hmm_n_classes, hmm_n_obs, hmm_constraint_file):
         self.hmm_n_classes = hmm_n_classes
@@ -209,8 +217,8 @@ class IgorsClass(cellh5_analysis.CellH5Analysis):
     
     
     
-    def read_secondary_channel_feature(self, output_name, feature_name='n2_avg'):
-        all_secondary_feature = []
+    def read_tertiary_channel_feature(self, output_name, feature_name='n2_avg'):
+        all_tertiary_feature = []
         
         
         for _, (plate_name, w, p, t1, t2, track_ids, track_labels) in self.mapping[['Plate', 
@@ -220,18 +228,18 @@ class IgorsClass(cellh5_analysis.CellH5Analysis):
                                                                                     'siRNA ID', 
                                                                                     'Event track ids',
                                                                                     'Event HMM track labels']].iterrows(): 
-            sec_feat = []
+            ter_feat = []
             ch5_file_handle = self.cellh5_handles[plate_name]
             ch5_pos = ch5_file_handle.get_position(w, str(p))
             
-            feature_idx_for_mean_signal = ch5_pos.get_object_feature_idx_by_name('secondary__expanded', feature_name)
+            feature_idx_for_mean_signal = ch5_pos.get_object_feature_idx_by_name('tertiary__expanded', feature_name)
             
             for track_id, track_label in zip(track_ids, track_labels):
-                PCNA_signal = ch5_pos.get_object_features('secondary__expanded')[track_id][feature_idx_for_mean_signal]
-                sec_feat.append(PCNA_signal)
-            all_secondary_feature.append(sec_feat)
+                A2_signal = ch5_pos.get_object_features('tertiary__expanded')[track_id][feature_idx_for_mean_signal]
+                ter_feat.append(A2_signal)
+            all_tertiary_feature.append(ter_feat)
             
-        self.mapping[output_name] = pandas.Series(all_secondary_feature)               
+        self.mapping[output_name] = pandas.Series(all_tertiary_feature)               
         
     def generate_gallery_class_images(self):
         for _, (plate_name, w, p, t1, t2, event_ids, track_ids, track_labels) in self.mapping[['Plate', 
@@ -314,17 +322,17 @@ if __name__ == "__main__":
     import seaborn
     
     print 'Start'
-    plate_name = '140508'
+    plate_name = '140414'
     ch5_main_file = "/Volumes/groups/gerlich/members/Igor Gak/FINAL_SS_Plate1/analysis/hdf5/_all_positions.ch5"
-    pos_mapping_file = "/Volumes/Seagate Backup Plus Drive/FINAL_HDF5/FINAL.txt"
+    pos_mapping_file = "/Volumes/groups/gerlich/members/Igor Gak/FINAL_SS_Plate1/FINAL_SS.txt"
     hmm_xml_constraint_file = "graph_igor_pnas_h2b_combi.xml"
     
     pm = IgorsClass('igor_test', 
                         {plate_name: pos_mapping_file}, 
                         {plate_name: ch5_main_file}, 
                         sites=(1,),
-                       rows=("D","C","F",), 
-                       cols=(4, 5,)
+                        rows=("B","C","D","E","F",), 
+                        cols=(2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
                     )
     pm.read_events(5,99999)
     pm.track_full_events()
@@ -333,26 +341,25 @@ if __name__ == "__main__":
     pm.predict_hmm("Event labels combined")
     
     pm.plot_track_order_map(["Event track labels", "Event labels combined", 'Event HMM track labels'], 
-                             [IgorsClass.cmap3, IgorsClass.cmap4, IgorsClass.cmap5])
+                              [IgorsClass.cmap3, IgorsClass.cmap4, IgorsClass.cmap5])
     
     
 #    pm.read_tertiary_channel_feature('Cyclin values for HMM tracks')
 #    pm.generate_gallery_class_images()
     
 #    pm.event_curves('Event HMM track labels', 
-#                           "secondary__expanded",
+#                           "tertiary__expanded",
 #                           "n2_avg",
-#                           IgorsClass.cmap5,
-#                           (0, 2000),
-#                           (0, 2),
-#                           0,
-#                           )
+#                            IgorsClass.cmap5,
+#                           IgorsClass.cmap_all_black,
+#                           (-50, 20*60),
+#                           (0, 1.5),
+#                           0)
+                           
     
     mito_timings = pm.get_mitotic_timing()
     
     mito2mito_timings = pm.select_tracks('Selected HMM track labels')
-    
-#    pm.plot_track_order_map(['Selected HMM track labels'], [IgorsClass.cmap5])
     
     mito_unknown_timings = pm.select_tracks_G1('Selected HMM track labels')
     
@@ -360,7 +367,7 @@ if __name__ == "__main__":
     
     G2_phase_timings = pm.select_tracks_G2('Selected HMM track labels')
     
-#    pm.plot_track_order_map(['Selected HMM track labels'], [IgorsClass.cmap5])
+    pm.plot_track_order_map(['Selected HMM track labels'], [IgorsClass.cmap5])
     
 #    def median(S_phase_timings.values()):
 
